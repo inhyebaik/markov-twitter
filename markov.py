@@ -1,5 +1,6 @@
 """Generate Markov text from text files."""
-
+import twitter
+import os
 from random import choice
 import sys
 
@@ -71,7 +72,7 @@ def make_text(chains, number_words):
     current_length = len(" ".join(words))
     # adds last number_words of the k-v pair as new current key
     # do until the key doesn't exist
-    while current_key in chains.keys() and current_length <= 140:
+    while current_key in chains.keys() and current_length <= 132:  # w/o hashtag
         last_word = choice(chains[current_key])
         words.append(last_word)
         current_length = len(" ".join(words))
@@ -91,6 +92,7 @@ def output_file(random_text):
     output.write(random_text + "\n\n")
     output.close()
     print "Your text is now saved into the output file markov-story."
+    return random_text
 
 
 def give_user_choice_of_ngrams(text_string):
@@ -140,7 +142,7 @@ def truncate_chars(ngram, punct, num, chains, input_text):
     Rerun the random story generation if there is no punct in the story
     Add a char limit of 140 """
     while True:
-        for index in reversed(range(0, min(len(ngram), 140))):
+        for index in reversed(range(0, min(len(ngram), 132))):
             if ngram[index] == punct:
                 if is_original(ngram[:index+1], input_text.rstrip()):
                     return ngram[:index+1]
@@ -152,16 +154,59 @@ def is_original(ngram, input_text):
     input_text = input_text.replace("\n", " ")
     return ngram.rstrip() not in input_text.rstrip()
 
+
+def twitter_request(input_text):
+    """Promps user if they want to publish a story as a tweet.
+    Gives them the option to keep posting new storys as tweets.
+    Returns nothing"""
+    while True:
+        story = get_story(input_text)
+        story = story + "#hbada17"
+        print "Here is your story to tweet: \n '{}'".format(story)
+        print "You can either publish (y), not publish and get a new tweet (n)"
+        print "or you can quit (q)."
+        user_answer = raw_input("Enter y, n, or q:\n")
+        if user_answer.lower() not in ["y", "n"]:
+            print "BYE!!"
+            break
+        elif user_answer.lower().startswith("y"):
+            twitter_post(story)
+            user_input = raw_input("Do you want to tweet again (y/n)?\n")
+            if user_input.lower().startswith("y"):
+                continue
+            else:
+                print "THANKS BYE"
+                break
+        elif user_answer.lower().startswith("n"):
+            print "Okay, we'll get a different story for you to tweet."
+            continue
+
+
+def twitter_post(tweet):
+    """ Interacts with Twitter API to publish posts """
+    api = twitter.Api(consumer_key=os.environ['TWITTER_CONSUMER_KEY'],
+                      consumer_secret=os.environ['TWITTER_CONSUMER_SECRET'],
+                      access_token_key=os.environ['TWITTER_ACCESS_TOKEN_KEY'],
+                      access_token_secret=os.environ['TWITTER_ACCESS_TOKEN_SECRET'])
+    status = api.PostUpdate(tweet)
+    print status.text
+
+
+def get_story(input_text):
+    """ given an input text, calls functions to return Markov story
+    Also save a copy to an output_file."""
+    user_choice = give_user_choice_of_ngrams(input_text)
+    story = output_file(user_choice)
+    return story
+
+
 input_path = sys.argv[1:]
 # Open the file and turn it into one long string
 input_text = open_and_read_file(input_path)
-
+twitter_request(input_text)
 # not using below with new feature adds
 # number_words = 2
 # # Get a Markov chain
 # chains = make_chains(input_text, number_words)
 # # Produce random text
 # random_text = make_text(chains, number_words)
-
-user_choice = give_user_choice_of_ngrams(input_text)
-story = output_file(user_choice)
