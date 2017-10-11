@@ -162,6 +162,8 @@ def twitter_request(input_text):
     while True:
         story = get_story(input_text)
         story = story + "#hbada17"
+        print "Here is your most recent tweet: \n"
+        print read_most_recent('AdaHackbright')
         print "Here is your story to tweet: \n '{}'".format(story)
         print "You can either publish (y), not publish and get a new tweet (n)"
         print "or you can quit (q)."
@@ -187,7 +189,8 @@ def twitter_post(tweet):
     api = twitter.Api(consumer_key=os.environ['TWITTER_CONSUMER_KEY'],
                       consumer_secret=os.environ['TWITTER_CONSUMER_SECRET'],
                       access_token_key=os.environ['TWITTER_ACCESS_TOKEN_KEY'],
-                      access_token_secret=os.environ['TWITTER_ACCESS_TOKEN_SECRET'])
+                      access_token_secret=os.environ['TWITTER_ACCESS_TOKEN_SECRET']
+                      )
     status = api.PostUpdate(tweet)
     print status.text
 
@@ -200,13 +203,26 @@ def get_story(input_text):
     return story
 
 
+def read_most_recent(user_name):
+    api = twitter.Api(consumer_key=os.environ['TWITTER_CONSUMER_KEY'],
+                      consumer_secret=os.environ['TWITTER_CONSUMER_SECRET'],
+                      access_token_key=os.environ['TWITTER_ACCESS_TOKEN_KEY'],
+                      access_token_secret=os.environ['TWITTER_ACCESS_TOKEN_SECRET']
+                      )
+    user_info = api.GetUserTimeline(screen_name=user_name)
+    first_post = user_info[0].text
+    return first_post
+
+
 input_path = sys.argv[1:]
 # Open the file and turn it into one long string
 input_text = open_and_read_file(input_path)
 twitter_request(input_text)
+
 # not using below with new feature adds
 # number_words = 2
 # # Get a Markov chain
 # chains = make_chains(input_text, number_words)
 # # Produce random text
 # random_text = make_text(chains, number_words)
+
